@@ -3,5 +3,9 @@
 version = 3
 
 [[package]]
+name = "rss-sync"
+version = "0.1.0"
+
+[[package]]
 name = "rustlefeed"
 version = "0.1.0"
