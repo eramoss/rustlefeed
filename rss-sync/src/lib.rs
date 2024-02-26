@@ -1,3 +1,5 @@
+pub mod rss_manager;
+
 use std::{
     fs::File,
     io::{BufRead, BufReader},
@@ -5,7 +7,7 @@ use std::{
 
 use rss::{Channel, Item};
 
-pub struct RssSync {
+pub struct Rss {
     origin: Origin,
     pub channel: Channel,
     pub last_updated: String,
@@ -18,18 +20,18 @@ enum Origin {
     File(String),
 }
 
-impl RssSync {
-    pub async fn from_url(url: &str) -> Result<RssSync, Box<dyn std::error::Error>> {
+impl Rss {
+    pub async fn from_url(url: &str) -> Result<Rss, Box<dyn std::error::Error>> {
         let content = reqwest::get(url).await?.bytes().await?;
         Self::build(&content[..], Origin::Url(url.to_string()))
     }
 
-    pub fn from_file(filepath: &str) -> Result<RssSync, Box<dyn std::error::Error>> {
+    pub fn from_file(filepath: &str) -> Result<Rss, Box<dyn std::error::Error>> {
         let file = File::open(filepath).unwrap();
         Self::build(BufReader::new(file), Origin::File(filepath.to_string()))
     }
 
-    pub async fn sync_channel(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn sync(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         match &self.origin {
             Origin::Url(url) => {
                 let content = reqwest::get(url).await?.bytes().await?;
@@ -59,14 +61,14 @@ impl RssSync {
         Ok(self.items.extend(new_items))
     }
 
-    fn build<R>(content: R, origin: Origin) -> Result<RssSync, Box<dyn std::error::Error>>
+    fn build<R>(content: R, origin: Origin) -> Result<Rss, Box<dyn std::error::Error>>
     where
         R: BufRead,
     {
         let channel = Channel::read_from(content)?;
         let last_updated = channel.last_build_date().unwrap().to_string();
         let items = channel.items();
-        Ok(RssSync {
+        Ok(Rss {
             origin,
             channel: channel.clone(),
             last_updated,
@@ -94,7 +96,7 @@ mod tests {
         let file = tempfile::NamedTempFile::new().unwrap();
         file.as_file().write_all(_RSS.as_bytes()).unwrap();
         let rss_sync =
-            RssSync::from_file(file.path().to_str().unwrap()).expect("enable to open file as rss");
+            Rss::from_file(file.path().to_str().unwrap()).expect("enable to open file as rss");
         assert_eq!(
             rss_sync.origin,
             Origin::File(file.path().to_str().unwrap().to_string())
@@ -112,12 +114,12 @@ mod tests {
             .with_body(_RSS_UPDATED)
             .create();
 
-        rss_sync.sync_channel().await.unwrap();
+        rss_sync.sync().await.unwrap();
 
         assert_eq!(rss_sync.last_updated, _RSS_UPDATED_LAST_UPDATED);
     }
 
-    async fn _build_from_mock() -> (mockito::ServerGuard, RssSync) {
+    async fn _build_from_mock() -> (mockito::ServerGuard, Rss) {
         let mut _m = mockito::Server::new();
         _m.mock("GET", "/")
             .with_status(200)
@@ -126,7 +128,7 @@ mod tests {
             .create();
         let addr = _m.host_with_port();
 
-        let rss_sync = RssSync::from_url(format!("http://{}", addr).as_str())
+        let rss_sync = Rss::from_url(format!("http://{}", addr).as_str())
             .await
             .unwrap();
 
