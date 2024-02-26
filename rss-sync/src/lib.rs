@@ -14,7 +14,6 @@ pub struct Rss {
     pub channel: Channel,
     pub last_updated: String,
     pub items: Vec<Item>,
-    pub news: Vec<Item>,
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -64,7 +63,6 @@ impl Rss {
     fn sync_items(&mut self, new_items: &[Item]) -> Result<(), Box<dyn std::error::Error>> {
         let mut new_items = new_items.to_vec();
         new_items.retain(|new_item| !self.items.iter().any(|item| item.link() == new_item.link()));
-        self.news.extend(new_items.clone());
         Ok(self.items.extend(new_items))
     }
 
@@ -80,7 +78,6 @@ impl Rss {
             channel: channel.clone(),
             last_updated,
             items: items.to_vec(),
-            news: items.to_vec(),
         })
     }
 }

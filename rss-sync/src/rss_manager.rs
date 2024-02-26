@@ -49,7 +49,7 @@ impl RssManager {
             let all_news_clone = Arc::clone(&all_news);
             let rss_clone = rss.clone();
             let handle = thread::spawn(move || {
-                for item in &rss_clone.news {
+                for item in &rss_clone.items {
                     all_news_clone.lock().unwrap().push(item.clone());
                 }
             });
