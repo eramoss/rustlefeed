@@ -78,8 +78,7 @@ async fn rocket() -> _ {
     manager.sync_all().await.unwrap();
     manager.update_all_news();
 
-    dbg!(&manager.all_news);
-
+    manager.save_to_database("db/RssHist.sqlite3").unwrap();
     let news = manager.all_news;
     let new_as_html: Vec<String> = news
         .iter()

@@ -5,6 +5,7 @@ use std::{
 };
 
 use rss::Item;
+use rusqlite::Connection;
 
 use crate::Rss;
 
@@ -60,6 +61,42 @@ impl RssManager {
             handle.join().unwrap();
         }
         self.all_news = all_news.lock().unwrap().clone();
+    }
+
+    pub fn save_to_database(&self, db_path: &str) -> Result<(), rusqlite::Error> {
+        let conn = Connection::open(db_path)?;
+
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS rss_items (
+                id INTEGER PRIMARY KEY,
+                title TEXT,
+                link TEXT,
+                description TEXT,
+                author TEXT,
+                categories TEXT,
+                comments TEXT,
+                pub_date TEXT,
+                source TEXT,
+                content TEXT,
+                itunes_ext TEXT,
+                dublin_core_ext TEXT,
+                last_updated TEXT
+            )",
+            [],
+        )?;
+
+        for (_, rss) in &self.rss_feeds {
+            for item in &rss.items {
+                conn.execute(
+                    "INSERT INTO rss_items (title, link, description, author, categories, comments, pub_date, source, content, itunes_ext, dublin_core_ext, last_updated)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+                    &[&item.title, &item.link, &item.description, &item.author, &format!("{:?}", item.categories).into(), &item.comments, &item.pub_date, &item.source.clone().unwrap_or_default().url.to_string().into()
+                    , &item.content, &format!("{:?}", item.itunes_ext).into(), &format!("{:?}", item.dublin_core_ext).into(), &rss.last_updated.clone().into()],
+                )?;
+            }
+        }
+
+        Ok(())
     }
 }
 
