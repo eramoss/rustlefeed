@@ -7,6 +7,7 @@ use std::{
 
 use rss::{Channel, Item};
 
+#[derive(PartialEq, Clone, Debug)]
 pub struct Rss {
     origin: Origin,
     pub channel: Channel,
@@ -14,7 +15,7 @@ pub struct Rss {
     pub items: Vec<Item>,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 enum Origin {
     Url(String),
     File(String),
@@ -78,35 +79,35 @@ impl Rss {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
+    use tempfile::NamedTempFile;
+
     use super::*;
     use std::io::Write;
 
     #[tokio::test]
-    async fn test_rss_sync_from_url() {
-        let (_m, rss_sync) = _build_from_mock().await;
+    async fn test_rss_from_url() {
+        let (_m, rss) = _build_from_mock().await;
         let addr = _m.host_with_port();
 
-        assert_eq!(rss_sync.origin, Origin::Url(format!("http://{}", addr)));
-        assert_eq!(rss_sync.last_updated, _RSS_LAST_UPDATED);
+        assert_eq!(rss.origin, Origin::Url(format!("http://{}", addr)));
+        assert_eq!(rss.last_updated, _RSS_LAST_UPDATED);
     }
 
     #[test]
-    fn test_rss_sync_from_file() {
-        let file = tempfile::NamedTempFile::new().unwrap();
-        file.as_file().write_all(_RSS.as_bytes()).unwrap();
-        let rss_sync =
-            Rss::from_file(file.path().to_str().unwrap()).expect("enable to open file as rss");
+    fn test_rss_from_file() {
+        let (file, rss) = _build_from_tempfile();
+
         assert_eq!(
-            rss_sync.origin,
+            rss.origin,
             Origin::File(file.path().to_str().unwrap().to_string())
         );
-        assert_eq!(rss_sync.last_updated, _RSS_LAST_UPDATED);
+        assert_eq!(rss.last_updated, _RSS_LAST_UPDATED);
     }
 
     #[tokio::test]
     async fn test_sync_channel() {
-        let (mut _m, mut rss_sync) = _build_from_mock().await;
+        let (mut _m, mut rss) = _build_from_mock().await;
         let _m = _m
             .mock("GET", "/")
             .with_status(200)
@@ -114,12 +115,12 @@ mod tests {
             .with_body(_RSS_UPDATED)
             .create();
 
-        rss_sync.sync().await.unwrap();
+        rss.sync().await.unwrap();
 
-        assert_eq!(rss_sync.last_updated, _RSS_UPDATED_LAST_UPDATED);
+        assert_eq!(rss.last_updated, _RSS_UPDATED_LAST_UPDATED);
     }
 
-    async fn _build_from_mock() -> (mockito::ServerGuard, Rss) {
+    pub async fn _build_from_mock() -> (mockito::ServerGuard, Rss) {
         let mut _m = mockito::Server::new();
         _m.mock("GET", "/")
             .with_status(200)
@@ -128,15 +129,24 @@ mod tests {
             .create();
         let addr = _m.host_with_port();
 
-        let rss_sync = Rss::from_url(format!("http://{}", addr).as_str())
+        let rss = Rss::from_url(format!("http://{}", addr).as_str())
             .await
             .unwrap();
 
-        (_m, rss_sync)
+        (_m, rss)
     }
 
-    const _RSS_LAST_UPDATED: &'static str = "Mon, 06 Sep 2010 00:01:00 +0000";
-    const _RSS: &'static str = r#"
+    pub fn _build_from_tempfile() -> (NamedTempFile, Rss) {
+        let file = tempfile::NamedTempFile::new().unwrap();
+        file.as_file().write_all(_RSS.as_bytes()).unwrap();
+        let rss =
+            Rss::from_file(file.path().to_str().unwrap()).expect("enable to open file as rss");
+
+        (file, rss)
+    }
+
+    pub const _RSS_LAST_UPDATED: &'static str = "Mon, 06 Sep 2010 00:01:00 +0000";
+    pub const _RSS: &'static str = r#"
         <?xml version="1.0" encoding="UTF-8"?>
         <rss version="2.0">
             <channel>
@@ -159,8 +169,8 @@ mod tests {
             </channel>
         </rss>
         "#;
-    const _RSS_UPDATED_LAST_UPDATED: &'static str = "Mon, 07 Sep 2010 00:20:00 +0000";
-    const _RSS_UPDATED: &'static str = r#"
+    pub const _RSS_UPDATED_LAST_UPDATED: &'static str = "Mon, 07 Sep 2010 00:20:00 +0000";
+    pub const _RSS_UPDATED: &'static str = r#"
         <?xml version="1.0" encoding="UTF-8"?>
         <rss version="2.0">
             <channel>
