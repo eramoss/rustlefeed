@@ -35,7 +35,7 @@ fn next_page(pages: &State<HtmlPages>) -> Option<RawHtml<String>> {
     </form>",
     );
 
-    Some(RawHtml(page_content))
+    Some(RawHtml(page_content + STYLE))
 }
 
 #[post("/next")]
@@ -57,9 +57,9 @@ fn load_next_page(pages: &State<HtmlPages>) -> RawHtml<String> {
         <button type=\"submit\">Next</button>
         </form>",
         );
-        return RawHtml(page);
+        return RawHtml(page + STYLE);
     } else {
-        return RawHtml(warning.clone());
+        return RawHtml(warning.clone() + STYLE);
     }
 }
 
@@ -93,3 +93,35 @@ async fn rocket() -> _ {
         .manage(htmls)
         .mount("/", routes![index, next_page, load_next_page])
 }
+
+const STYLE: &'static str = r#"
+<style>
+* { margin:0; padding:0; }
+
+html { display:block; background-color:#960000; padding-bottom:50px; }
+body { font:80% Verdana, sans-serif; color:#000; background:#fff url(pagebg_rss.jpg) top left no-repeat; padding:25px 0 0 35px; }
+
+a { color:#960000; }
+a:hover { text-decoration:none; }
+
+h2 { font-weight:normal; border-bottom:1px solid #960000; margin-bottom:0.4em; }
+h2 a { display:block; margin-bottom:0.2em; text-decoration:none; color:#000; }
+
+div { line-height:1.6em; }
+
+div#content { background:#fff url(logo.jpg) bottom right no-repeat; margin-right:15px; padding:1em 0 55px 0; }
+div#content div { margin:0 1em 1em 0; }
+img {
+    max-width: 30%;
+    height: auto;
+}
+div#explanation { padding:1em 1em 0 1em; border:1px solid #ddd; background:#efefef; margin-right:2em; }
+div#explanation h1 { font-weight:normal; font-size:1.8em; margin-bottom:0.3em; }
+div#explanation p { margin-bottom:1em; }
+
+button {
+    margin-top: 10px;
+    padding: 10px 20px;
+}
+<style/>
+"#;
