@@ -26,7 +26,14 @@ fn next_page(pages: &State<HtmlPages>) -> Option<RawHtml<String>> {
     let current_page = pages.first()?;
 
     // Clone the current page content to serve
-    let page_content = current_page.clone();
+    let mut page_content = current_page.clone();
+    page_content.push_str(
+        "
+    <form id=\"postForm\" method=\"post\" action=\"\">
+   
+    <button type=\"submit\">Next</button>
+    </form>",
+    );
 
     Some(RawHtml(page_content))
 }
@@ -64,7 +71,7 @@ async fn rocket() -> _ {
     let rss2 = Rss::from_url("https://podcastfeeds.nbcnews.com/RPWEjhKq")
         .await
         .unwrap();
-    dbg!(&rss2.news);
+
     let mut manager = RssManager::new();
     manager.add_feed("Mashable".to_string(), rss1);
     manager.add_feed("NBC News".to_string(), rss2);
