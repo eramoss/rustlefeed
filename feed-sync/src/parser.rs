@@ -8,12 +8,12 @@ impl Parser for Entry {
     fn into_html(&self) -> String {
         let mut html = String::new();
         html.push_str(&format!(
-            "<h1>{}</h1>",
+            "<h1 class=\"feed-item-title\">{}</h1>",
             self.title.clone().unwrap_or_default().content
         ));
         html.push_str(&format!("<p>{}</p>", self.published.unwrap_or_default()));
         html.push_str(&format!(
-            "<p>{}</p>",
+            "<p class=\"feed-item-summary\">{}</p>",
             self.authors
                 .iter()
                 .map(|author| author.name.clone())
@@ -21,7 +21,7 @@ impl Parser for Entry {
                 .join(", ")
         ));
         html.push_str(&format!(
-            "<p>{}</p>",
+            "<p class=\"feed-item-summary\">{}</p>",
             self.categories
                 .iter()
                 .map(|c| c.term.clone())
@@ -30,12 +30,12 @@ impl Parser for Entry {
         ));
 
         html.push_str(&format!(
-            "<p>{}</p>",
+            "<p class=\"feed-item-summary\">{}</p>",
             self.summary.clone().unwrap_or_default().content
         ));
 
         html.push_str(&format!(
-            "<p>{}</p>",
+            "<p class=\"feed-item-content\">{}</p>",
             self.content
                 .clone()
                 .unwrap_or_default()
@@ -43,7 +43,10 @@ impl Parser for Entry {
                 .unwrap_or_default()
         ));
         if let Some(link) = self.links.get(0) {
-            html.push_str(&format!("<a href='{}'>Read more</a>", link.href));
+            html.push_str(&format!(
+                "<a  class=\"feed-item-link\" href='{}'>Read more</a>",
+                link.href
+            ));
         }
         html
     }

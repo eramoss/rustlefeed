@@ -33,7 +33,7 @@ fn next(state: &StateApp, msg: Json<IsLiked>) -> RawHtml<String> {
 
 #[get("/")]
 fn index(_manager: &StateApp) -> RawHtml<File> {
-    let file = File::open("index.html").unwrap();
+    let file = File::open("assets/index.html").unwrap();
     RawHtml(file)
 }
 
