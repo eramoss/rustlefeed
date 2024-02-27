@@ -1,4 +1,4 @@
-workspace = { members = [ "feed-sync"] }
+workspace = { members = [ "feed-sync", "naive_bayes"] }
 [package]
 name = "rustlefeed"
 version = "0.1.0"
