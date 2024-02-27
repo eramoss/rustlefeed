@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Your RSS Feed Title</title>
+    <link>https://github.com/eramoss/rustlefeed/tree/master/feed-sync/mocks/rss.xml</link>
+    <description>Rustlefeed</description>
+    <language>en-us</language>
+    <lastBuildDate>Mon, 01 Jan 2022 00:00:00 GMT</lastBuildDate>
+    <item>
+      <title>Item Title</title>
+      <link>https://example.com/item1</link>
+      <description>Item Description</description>
+      <pubDate>Mon, 01 Jan 2022 12:00:00 GMT</pubDate>
+    </item>
+  </channel>
+</rss>
