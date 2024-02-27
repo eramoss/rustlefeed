@@ -4,143 +4,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Content Viewer</title>
+  <link rel="stylesheet" href="feed-style.css">
+  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+  <title>Rustle Feed</title>
 </head>
-<style>
-  /* Reset default styles */
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-
-  /* Body styles */
-  body {
-    font: 80% Verdana, sans-serif;
-    background-color: #f8f8f8;
-    color: #333;
-  }
-
-  /* Container for the entire feed */
-  .feed-container {
-    max-width: 800px;
-    min-height: 100vh;
-    height: 100%;
-    margin: 0 auto;
-    padding: 20px;
-  }
-
-  /* Individual feed item */
-  #feed-item {
-    margin-bottom: 20px;
-    background-color: #fff;
-    border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    padding: 20px;
-  }
-
-  /* Title of the feed item */
-  .feed-item-title {
-    font-size: 1.2em;
-    font-weight: bold;
-    border-bottom: 1px solid #960000;
-    margin-bottom: 10px;
-  }
-
-  /* Description or content of the feed item */
-  .feed-item-content {
-    font-size: 1em;
-    line-height: 1.4;
-  }
-
-  /* Link styles */
-  a {
-    color: #960000;
-
-  }
-
-  .feed-item-link {
-    color: #960000;
-    margin-top: 5px;
-    font-size: medium;
-    transition: color 0.3s;
-  }
-
-  a:hover {
-    text-decoration: none;
-  }
-
-  /* Summary or content of the feed item */
-  .feed-item-summary {
-    font-size: 1em;
-    line-height: 1.4;
-    margin-bottom: 10px;
-  }
-
-  /* Image styles */
-  img {
-    max-width: 100%;
-    height: auto;
-    margin-bottom: 10px;
-    border-radius: 5px;
-  }
-
-  .button-like {
-    background-color: #4CAF50;
-    border: none;
-    color: white;
-    padding: 15px 32px;
-    text-align: center;
-    text-decoration: none;
-    display: inline-block;
-    font-size: 16px;
-    margin: 4px 2px;
-    cursor: pointer;
-    margin-bottom: 50px;
-  }
-</style>
 
 <body>
   <div id="content-container" class="feed-container">
-    <div id="feed-item"></div>
+    <div id="feed-item">
+      <!-- Dynamic contents will be loaded here  -->
+    </div>
+
     <button class="button-like" id="like">Like</button>
     <button class="button-like" id="dislike">Dislike</button>
+
   </div>
-
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const contentContainer = document.getElementById('feed-item');
-      const likeBtn = document.getElementById('like');
-      const dislikeBtn = document.getElementById('dislike');
-
-      async function fetchNextContent(is_liked) {
-        const response = await fetch('/next', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ liked: is_liked })
-        });
-        if (response.ok) {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-          const content = await response.text();
-          setTimeout(() => {
-            contentContainer.innerHTML = content;
-          }, 200);
-        } else {
-          console.error('Failed to fetch next content');
-        }
-      }
-
-      likeBtn.addEventListener('click', function () {
-        fetchNextContent(true);
-      });
-      dislikeBtn.addEventListener('click', function () {
-        fetchNextContent(false);
-      });
-      fetchNextContent(null);
-    });
-  </script>
+  <script src="index.js"></script>
 </body>
 
 </html>

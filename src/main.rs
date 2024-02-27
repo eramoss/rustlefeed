@@ -3,12 +3,13 @@ extern crate rocket;
 use feed_sync::{parser::Parser, FeedManager};
 use rocket::{
     fairing,
+    fs::NamedFile,
     response::content::RawHtml,
     serde::{json::Json, Deserialize, Serialize},
     State,
 };
 use std::{
-    fs::File,
+    path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
 
@@ -31,10 +32,15 @@ fn next(state: &StateApp, msg: Json<IsLiked>) -> RawHtml<String> {
     RawHtml(html)
 }
 
+#[get("/<file..>")]
+async fn files(file: PathBuf) -> Option<NamedFile> {
+    NamedFile::open(Path::new("assets").join(file)).await.ok()
+}
+
 #[get("/")]
-fn index(_manager: &StateApp) -> RawHtml<File> {
-    let file = File::open("assets/index.html").unwrap();
-    RawHtml(file)
+async fn index(_manager: &StateApp) -> Option<NamedFile> {
+    let file = NamedFile::open("assets/index.html").await.unwrap();
+    Some(file)
 }
 
 type StateApp = State<Arc<Mutex<FeedManager>>>;
@@ -46,7 +52,7 @@ async fn rocket() -> _ {
 
     rocket::build()
         .manage(state)
-        .mount("/", routes![index, next])
+        .mount("/", routes![index, next, files])
         .attach(fairing::AdHoc::on_shutdown(
             "saving already seen on db",
             |_rocket| {
