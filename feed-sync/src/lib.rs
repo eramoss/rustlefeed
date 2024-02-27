@@ -46,10 +46,10 @@ impl FeedManager {
         self.feeds.insert((feed, url));
     }
 
-    fn remove_feed_by_url(&mut self, url: &str) {
+    pub fn remove_feed_by_url(&mut self, url: &str) {
         self.feeds.retain(|(_, u)| u != url);
     }
-    fn get_feed(&self, url: &str) -> Option<&Feed> {
+    pub fn get_feed(&self, url: &str) -> Option<&Feed> {
         self.feeds.iter().find(|(_, u)| u == url).map(|(f, _)| f)
     }
 }
