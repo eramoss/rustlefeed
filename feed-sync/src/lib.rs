@@ -4,6 +4,8 @@ use feed_rs::model::{Entry, Feed};
 use reqwest::get;
 use std::collections::HashSet;
 
+// Define your structs here
+
 type IsLiked = bool;
 #[derive(Debug, Clone)]
 pub struct FeedManager {
