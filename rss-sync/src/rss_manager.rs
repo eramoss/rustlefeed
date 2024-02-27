@@ -1,18 +1,19 @@
 use std::{
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     sync::{Arc, Mutex},
     thread,
 };
 
+use crate::Rss;
 use rss::Item;
 use rusqlite::Connection;
-
-use crate::Rss;
 
 #[derive(Debug)]
 pub struct RssManager {
     pub rss_feeds: HashMap<String, Rss>,
     pub all_news: Vec<Item>,
+    //TODO : Implement Hash Eq and Ord to use Item as key
+    pub already_seen: BTreeMap<i8, Item>,
 }
 
 impl RssManager {
@@ -20,6 +21,7 @@ impl RssManager {
         RssManager {
             rss_feeds: HashMap::new(),
             all_news: Vec::new(),
+            already_seen: BTreeMap::new(),
         }
     }
 
@@ -80,20 +82,18 @@ impl RssManager {
                 content TEXT,
                 itunes_ext TEXT,
                 dublin_core_ext TEXT,
-                last_updated TEXT
+                liked INTEGER
             )",
             [],
         )?;
 
-        for (_, rss) in &self.rss_feeds {
-            for item in &rss.items {
-                conn.execute(
-                    "INSERT INTO rss_items (title, link, description, author, categories, comments, pub_date, source, content, itunes_ext, dublin_core_ext, last_updated)
+        for (is_liked, item) in self.already_seen.iter() {
+            conn.execute(
+                    "INSERT INTO rss_items (title, link, description, author, categories, comments, pub_date, source, content, itunes_ext, dublin_core_ext, liked)
                      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
                     &[&item.title, &item.link, &item.description, &item.author, &format!("{:?}", item.categories).into(), &item.comments, &item.pub_date, &item.source.clone().unwrap_or_default().url.to_string().into()
-                    , &item.content, &format!("{:?}", item.itunes_ext).into(), &format!("{:?}", item.dublin_core_ext).into(), &rss.last_updated.clone().into()],
+                    , &item.content, &format!("{:?}", item.itunes_ext).into(), &format!("{:?}", item.dublin_core_ext).into(), &is_liked.to_string().into()],
                 )?;
-            }
         }
 
         Ok(())

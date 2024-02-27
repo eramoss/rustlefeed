@@ -1,16 +1,9 @@
 #[macro_use]
 extern crate rocket;
-
-use rocket::response::content::RawHtml;
 use rocket::State;
+use rocket::{form::Form, response::content::RawHtml};
 use rss_sync::{parser::Parser, rss_manager::RssManager, Rss};
 use std::sync::{Arc, Mutex};
-
-// Define a struct to hold the HTML pages
-#[derive(Debug)]
-struct HtmlPages {
-    pages: Arc<Mutex<Vec<String>>>,
-}
 
 #[get("/")]
 fn index() -> &'static str {
@@ -18,53 +11,89 @@ fn index() -> &'static str {
 }
 
 #[get("/next")]
-fn next_page(pages: &State<HtmlPages>) -> Option<RawHtml<String>> {
-    // Lock the mutex to access the pages vector
-    let pages = pages.pages.lock().unwrap();
-
-    // Retrieve the next page if available
-    let current_page = pages.first()?;
-
-    // Clone the current page content to serve
-    let mut page_content = current_page.clone();
-    page_content.push_str(
-        "
-    <form id=\"postForm\" method=\"post\" action=\"\">
-   
-    <button type=\"submit\">Next</button>
-    </form>",
-    );
-
-    Some(RawHtml(page_content + STYLE))
-}
-
-#[post("/next")]
-fn load_next_page(pages: &State<HtmlPages>) -> RawHtml<String> {
-    // Lock the mutex to access the pages vector
-    let mut pages = pages.pages.lock().unwrap();
-
-    // Remove the current page from the vector
-    if !pages.is_empty() {
-        pages.remove(0);
-    }
-    let warning = &String::from("No more pages to load!");
-    if let Some(page) = pages.first() {
-        let mut page = page.clone();
-        page.push_str(
-            "
-        <form id=\"postForm\" method=\"post\" action=\"\">
-       
-        <button type=\"submit\">Next</button>
-        </form>",
-        );
-        return RawHtml(page + STYLE);
-    } else {
-        return RawHtml(warning.clone() + STYLE);
+fn next_page(state: &StateApp) -> Option<RawHtml<String>> {
+    let mg = state.lock().unwrap();
+    let current_item = mg.all_news.last();
+    match current_item {
+        None => return None,
+        Some(item) => Some(RawHtml(format!(
+            "{}{}{}",
+            item.clone().into_html().unwrap(),
+            "            
+            <form action=\"\" method=\"post\">
+            <input type=\"text\" name=\"like\" value=true>
+                    <button type=\"submit\">Like</button>
+                  </form>
+                  <form action=\"\" method=\"post\">
+                  <input type=\"text\" name=\"like\" value=false>
+                    <button type=\"submit\">Unlike</button>
+                  </form>",
+            STYLE,
+        ))),
     }
 }
 
+#[derive(FromForm)]
+struct FormData {
+    like: bool,
+}
+
+#[post("/next", data = "<is_liked>")]
+fn load_next_page(is_liked: Form<FormData>, state: &StateApp) -> Option<RawHtml<String>> {
+    let mut mg = state.lock().unwrap();
+    let previous_item = mg.all_news.pop();
+    if let Some(item) = previous_item {
+        if is_liked.like {
+            mg.already_seen.insert(1, item.clone());
+        } else {
+            mg.already_seen.insert(0, item.clone());
+        }
+    }
+
+    let current_item = mg.all_news.last();
+    match current_item {
+        None => return None,
+        Some(item) => Some(RawHtml(format!(
+            "{}{}{}",
+            item.clone().into_html().unwrap(),
+            "<form action=\"\" method=\"post\">
+            <input type=\"text\" name=\"like\" value=true>
+                    <button type=\"submit\">Like</button>
+                  </form>
+                  <form action=\"\" method=\"post\">
+                  <input type=\"text\" name=\"like\" value=false>
+                    <button type=\"submit\">Unlike</button>
+                  </form>",
+            STYLE,
+        ))),
+    }
+}
+
+type StateApp = State<Arc<Mutex<RssManager>>>;
 #[launch]
 async fn rocket() -> _ {
+    let manager = build_manager().await;
+    let state = Arc::new(Mutex::new(manager));
+    let closer = Arc::clone(&state);
+
+    rocket::build()
+        .manage(state)
+        .mount("/", routes![index, next_page, load_next_page])
+        .attach(rocket::fairing::AdHoc::on_shutdown(
+            "save db on shutdown",
+            |_rocket| {
+                Box::pin(async move {
+                    closer
+                        .lock()
+                        .unwrap()
+                        .save_to_database("db/RssHist.db")
+                        .unwrap();
+                })
+            },
+        ))
+}
+
+async fn build_manager() -> RssManager {
     let rss1 = Rss::from_url("https://mashable.com/feeds/rss/all")
         .await
         .unwrap();
@@ -77,20 +106,7 @@ async fn rocket() -> _ {
     manager.add_feed("NBC News".to_string(), rss2);
     manager.sync_all().await.unwrap();
     manager.update_all_news();
-
-    manager.save_to_database("db/RssHist.sqlite3").unwrap();
-    let news = manager.all_news;
-    let new_as_html: Vec<String> = news
-        .iter()
-        .map(|item| item.clone().into_html().unwrap())
-        .collect();
-
-    let htmls = HtmlPages {
-        pages: Arc::new(Mutex::new(new_as_html)),
-    };
-    rocket::build()
-        .manage(htmls)
-        .mount("/", routes![index, next_page, load_next_page])
+    manager
 }
 
 const STYLE: &'static str = r#"
@@ -121,6 +137,9 @@ div#explanation p { margin-bottom:1em; }
 button {
     margin-top: 10px;
     padding: 10px 20px;
+}
+input {
+    display: none;
 }
 <style/>
 "#;
