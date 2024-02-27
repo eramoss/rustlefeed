@@ -2,6 +2,7 @@
 extern crate rocket;
 use feed_sync::{parser::Parser, FeedManager};
 use rocket::{
+    fairing,
     response::content::RawHtml,
     serde::{json::Json, Deserialize, Serialize},
     State,
@@ -41,10 +42,23 @@ type StateApp = State<Arc<Mutex<FeedManager>>>;
 async fn rocket() -> _ {
     let manager = build_manager().await;
     let state = Arc::new(Mutex::new(manager));
+    let closer = Arc::clone(&state);
 
     rocket::build()
         .manage(state)
         .mount("/", routes![index, next])
+        .attach(fairing::AdHoc::on_shutdown(
+            "saving already seen on db",
+            |_rocket| {
+                Box::pin(async move {
+                    closer
+                        .lock()
+                        .unwrap()
+                        .save_already_seen("db/FeedHistory.db")
+                        .unwrap();
+                })
+            },
+        ))
 }
 
 async fn build_manager() -> FeedManager {
