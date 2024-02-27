@@ -1,7 +1,8 @@
-use std::collections::HashSet;
+pub mod parser;
 
 use feed_rs::model::{Entry, Feed};
 use reqwest::get;
+use std::collections::HashSet;
 
 type IsLiked = bool;
 #[derive(Debug, Clone)]

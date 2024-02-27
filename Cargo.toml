@@ -1,4 +1,4 @@
-workspace = { members = [ "naive_bayes","rss-sync"] }
+workspace = { members = [ "feed-sync"] }
 [package]
 name = "rustlefeed"
 version = "0.1.0"
@@ -8,5 +8,6 @@ edition = "2021"
 
 [dependencies]
 rocket = {version = "0.5", features = ["json"]}
-tokio = {version = "^1.36.0", features = ["full"]}
-rss-sync = { path = "./rss-sync" }
+tokio = { version = "^1.36.0", features = ["full"] }
+feed-sync = { path = "feed-sync" }
+
