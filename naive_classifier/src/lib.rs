@@ -10,6 +10,7 @@ pub struct NaiveBayesClassifier {
     pub token_disliked_counts: HashMap<String, i32>,
     pub disliked_entries_count: i32,
     pub liked_entries_count: i32,
+    pub is_prepared: bool,
 }
 
 type PossiblyLiked = bool;
@@ -18,6 +19,7 @@ pub struct EntryContent {
     all_content: String,
     liked: PossiblyLiked,
 }
+
 impl EntryContent {
     pub fn from_row(row: &Row) -> EntryContent {
         let title: String = row.get("title").unwrap_or_default();
@@ -65,19 +67,23 @@ impl NaiveBayesClassifier {
             .collect::<Vec<EntryContent>>();
 
         let mut classifier = NaiveBayesClassifier::new_classifier(1.0);
-        classifier.train(entry_contents);
-
+        classifier.is_prepared = entry_contents.len() > 100;
+        if classifier.is_prepared {
+            classifier.train(entry_contents);
+        }
         Ok(classifier)
     }
+
     fn new_classifier(alpha: f64) -> NaiveBayesClassifier {
-        return NaiveBayesClassifier {
+        NaiveBayesClassifier {
             alpha,
             tokens: HashSet::new(),
             token_liked_counts: HashMap::new(),
             token_disliked_counts: HashMap::new(),
             disliked_entries_count: 0,
             liked_entries_count: 0,
-        };
+            is_prepared: false,
+        }
     }
 
     pub fn train(&mut self, data: Vec<EntryContent>) {
@@ -91,6 +97,9 @@ impl NaiveBayesClassifier {
     }
 
     pub fn classify(&self, entry: Entry) -> PossiblyLiked {
+        if !self.is_prepared {
+            return true;
+        }
         let link = match entry.links.get(0) {
             Some(link) => link.href.to_lowercase(),
             None => String::new(),
@@ -117,21 +126,24 @@ impl NaiveBayesClassifier {
         let lower_case_text = text.to_lowercase();
         let message_tokens = Self::tokenize(&lower_case_text);
         let (prob_if_dislike, prob_if_liked) = self.probabilities_of_message(message_tokens);
-        return (prob_if_dislike / (prob_if_dislike + prob_if_liked)) <= 0.6;
+        prob_if_liked >= prob_if_dislike
     }
-
     fn probabilities_of_message(&self, message_tokens: HashSet<&str>) -> (f64, f64) {
         let mut log_prob_if_dislike = 0.;
         let mut log_prob_if_like = 0.;
+        let epsilon = 1e-9;
 
         for token in self.tokens.iter() {
-            let (prob_if_spam, prob_if_like) = self.probabilites_of_token(&token);
+            let (prob_if_disliked, prob_if_like) = self.probabilites_of_token(&token);
+
+            let prob_if_disliked = prob_if_disliked.max(epsilon).min(1. - epsilon);
+            let prob_if_like = prob_if_like.max(epsilon).min(1. - epsilon);
 
             if message_tokens.contains(token.as_str()) {
-                log_prob_if_dislike += prob_if_spam.ln();
+                log_prob_if_dislike += prob_if_disliked.ln();
                 log_prob_if_like += prob_if_like.ln();
             } else {
-                log_prob_if_dislike += (1. - prob_if_spam).ln();
+                log_prob_if_dislike += (1. - prob_if_disliked).ln();
                 log_prob_if_like += (1. - prob_if_like).ln();
             }
         }
@@ -143,13 +155,13 @@ impl NaiveBayesClassifier {
     }
 
     fn probabilites_of_token(&self, token: &str) -> (f64, f64) {
-        let prob_of_token_spam = (self.token_disliked_counts[token] as f64 + self.alpha)
+        let prob_of_token_disliked = (self.token_disliked_counts[token] as f64 + self.alpha)
             / (self.liked_entries_count as f64 + 2. * self.alpha);
 
-        let prob_of_token_ham = (self.token_liked_counts[token] as f64 + self.alpha)
+        let prob_of_token_liked = (self.token_liked_counts[token] as f64 + self.alpha)
             / (self.liked_entries_count as f64 + 2. * self.alpha);
 
-        return (prob_of_token_spam, prob_of_token_ham);
+        return (prob_of_token_disliked, prob_of_token_liked);
     }
 
     fn increment_entry_classifications_count(&mut self, entry: &EntryContent) {
