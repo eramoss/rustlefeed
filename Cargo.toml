@@ -13,3 +13,4 @@ tokio = { version = "^1.36.0", features = ["full"] }
 feed-sync = { path = "feed-sync" }
 ws = "0.9.2"
 naive_classifier = { path = "naive_classifier" }
+feed-rs = {git = "https://github.com/eramoss/feed-rs.git" ,branch = "default_text"}

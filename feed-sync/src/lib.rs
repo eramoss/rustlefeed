@@ -14,6 +14,8 @@ pub struct FeedManager {
     pub to_see: Vec<Entry>,
     pub already_seen: Vec<(Entry, IsLiked)>,
 }
+unsafe impl Send for FeedManager {}
+
 impl FeedManager {
     pub fn new() -> Self {
         FeedManager {

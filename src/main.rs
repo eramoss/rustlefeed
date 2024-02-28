@@ -2,6 +2,9 @@
 extern crate rocket;
 use feed_sync::{parser::Parser, FeedManager};
 use naive_classifier::NaiveBayesClassifier;
+
+use rocket::http::Status;
+use rocket::response::status::Custom;
 use rocket::{
     fairing,
     fs::NamedFile,
@@ -9,6 +12,7 @@ use rocket::{
     serde::{json::Json, Deserialize, Serialize},
     State,
 };
+
 use std::{
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
@@ -43,6 +47,27 @@ fn next(state: &StateApp, msg: Json<IsLiked>) -> RawHtml<String> {
     }
 }
 
+#[derive(Serialize, Deserialize)]
+struct AddFeedReq {
+    url: String,
+}
+
+#[post("/add-feed", data = "<feed_url>")]
+async fn add_feed(state: &StateApp, feed_url: Json<AddFeedReq>) -> Custom<Json<String>> {
+    let mut manager = state.manager.lock().unwrap().clone();
+    let result = manager.new_feed(&feed_url.url).await;
+
+    *state.manager.lock().unwrap() = manager.clone();
+    assert!(state.manager.lock().unwrap().feeds.len() == manager.feeds.len());
+    if result.is_err() {
+        return Custom(Status::BadRequest, Json("Error adding feed".to_string()));
+    }
+    Custom(
+        Status::Accepted,
+        Json("Feed addition task started".to_string()),
+    )
+}
+
 #[get("/<file..>")]
 async fn files(file: PathBuf) -> Option<NamedFile> {
     NamedFile::open(Path::new("assets").join(file)).await.ok()
@@ -72,7 +97,7 @@ async fn rocket() -> _ {
 
     rocket::build()
         .manage(state)
-        .mount("/", routes![index, next, files])
+        .mount("/", routes![index, next, files, add_feed])
         .attach(fairing::AdHoc::on_shutdown(
             "saving already seen on db",
             |_rocket| {
