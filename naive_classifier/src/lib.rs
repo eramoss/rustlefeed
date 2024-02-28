@@ -40,6 +40,20 @@ impl EntryContent {
 impl NaiveBayesClassifier {
     pub fn new(db_path: &str) -> Result<NaiveBayesClassifier, Box<dyn std::error::Error>> {
         let conn = Connection::open(db_path)?;
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS already_seen (
+                id TEXT PRIMARY KEY,
+                title TEXT,
+                authors TEXT,
+                content TEXT,
+                links TEXT,
+                summary TEXT,
+                categories TEXT,
+                language TEXT,
+                is_liked INTEGER
+            )",
+            [],
+        )?;
         let mut stmt = conn.prepare("SELECT * FROM already_seen")?;
         let entry_contents = stmt
             .query_map([], |row| Ok(EntryContent::from_row(row)))?
@@ -103,8 +117,7 @@ impl NaiveBayesClassifier {
         let lower_case_text = text.to_lowercase();
         let message_tokens = Self::tokenize(&lower_case_text);
         let (prob_if_dislike, prob_if_liked) = self.probabilities_of_message(message_tokens);
-
-        return (prob_if_dislike / (prob_if_dislike + prob_if_liked)) < 0.5;
+        return (prob_if_dislike / (prob_if_dislike + prob_if_liked)) <= 0.6;
     }
 
     fn probabilities_of_message(&self, message_tokens: HashSet<&str>) -> (f64, f64) {
