@@ -107,6 +107,12 @@ async fn rocket() -> _ {
                         .unwrap()
                         .save_already_seen("db/FeedHistory.db")
                         .unwrap();
+
+                    closer
+                        .lock()
+                        .unwrap()
+                        .save_feeds("db/FeedHistory.db")
+                        .unwrap();
                 })
             },
         ))
@@ -114,14 +120,7 @@ async fn rocket() -> _ {
 
 async fn build_manager() -> FeedManager {
     let mut manager = FeedManager::new();
-    manager
-        .new_feed("https://mashable.com/feeds/rss/all")
-        .await
-        .unwrap();
-    manager
-        .new_feed("https://podcastfeeds.nbcnews.com/RPWEjhKq")
-        .await
-        .unwrap();
-
+    manager.load_feeds_from_db("db/FeedHistory.db").unwrap();
+    manager.sync().await;
     manager
 }

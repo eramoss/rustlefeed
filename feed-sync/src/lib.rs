@@ -149,6 +149,74 @@ impl FeedManager {
         }
         Ok(())
     }
+
+    pub fn load_feeds_from_db(&mut self, db_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let conn = Connection::open(db_path)?;
+
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS feeds (
+                id TEXT PRIMARY KEY,
+                url TEXT
+            )",
+            [],
+        )?;
+        let mut stmt = conn.prepare("SELECT url FROM feeds")?;
+        let feeds = stmt.query_map([], |row| Ok(row.get(0)?))?;
+        for feed in feeds {
+            let url: String = feed?;
+            self.add_feed(Self::default_feed(), url)
+        }
+        Ok(())
+    }
+
+    pub fn save_feeds(&self, db_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let conn = Connection::open(db_path)?;
+
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS feeds (
+                id TEXT PRIMARY KEY,
+                url TEXT
+            )",
+            [],
+        )?;
+
+        let mut stmt = conn.prepare(
+            "
+            INSERT OR REPLACE INTO feeds (
+                id, url
+            ) VALUES (?1, ?2)
+        ",
+        )?;
+
+        for (feed, url) in &self.feeds {
+            let id = feed.id.clone();
+            stmt.execute(params![id, url])?;
+        }
+        Ok(())
+    }
+
+    fn default_feed() -> Feed {
+        Feed {
+            id: "".to_string(),
+            title: None,
+            updated: None,
+            authors: vec![],
+            links: vec![],
+            categories: vec![],
+            contributors: vec![],
+            generator: None,
+            icon: None,
+            logo: None,
+            rights: None,
+            entries: vec![],
+            language: None,
+            feed_type: feed_rs::model::FeedType::Atom,
+            description: None,
+            published: None,
+            rating: None,
+            ttl: None,
+        }
+    }
 }
 
 #[cfg(test)]
