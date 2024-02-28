@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate rocket;
 use feed_sync::{parser::Parser, FeedManager};
+use naive_classifier::NaiveBayesClassifier;
 use rocket::{
     fairing,
     fs::NamedFile,
@@ -20,16 +21,26 @@ struct IsLiked {
 
 #[post("/next", data = "<msg>")]
 fn next(state: &StateApp, msg: Json<IsLiked>) -> RawHtml<String> {
-    let mut manager = state.lock().unwrap();
+    let mut manager = state.manager.lock().unwrap();
 
     if let Some(is_liked) = msg.liked {
         let last = manager.to_see.pop().unwrap().clone();
         manager.already_seen.push((last, is_liked));
     }
 
-    let current = manager.to_see.last().unwrap().clone();
-    let html = current.into_html();
-    RawHtml(html)
+    loop {
+        let current = manager.to_see.last();
+        if current.is_none() {
+            return RawHtml("No more entries".to_string());
+        }
+        let current = current.unwrap();
+        let possible_likes = state.classifier.lock().unwrap().classify(current.clone());
+        if possible_likes {
+            return RawHtml(current.into_html());
+        } else {
+            manager.to_see.pop();
+        }
+    }
 }
 
 #[get("/<file..>")]
@@ -43,12 +54,19 @@ async fn index(_manager: &StateApp) -> Option<NamedFile> {
     Some(file)
 }
 
-type StateApp = State<Arc<Mutex<FeedManager>>>;
+struct StateAppS {
+    manager: Arc<Mutex<FeedManager>>,
+    classifier: Arc<Mutex<NaiveBayesClassifier>>,
+}
+type StateApp = State<StateAppS>;
 #[launch]
 async fn rocket() -> _ {
-    let manager = build_manager().await;
-    let state = Arc::new(Mutex::new(manager));
-    let closer = Arc::clone(&state);
+    let manager = Arc::new(Mutex::new(build_manager().await));
+    let state = StateAppS {
+        manager: Arc::clone(&manager),
+        classifier: Arc::new(Mutex::new(NaiveBayesClassifier::new())),
+    };
+    let closer = Arc::clone(&manager);
 
     rocket::build()
         .manage(state)

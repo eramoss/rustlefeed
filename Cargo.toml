@@ -1,4 +1,4 @@
-workspace = { members = [ "feed-sync"] }
+workspace = { members = [ "feed-sync", "naive_classifier"] }
 [package]
 name = "rustlefeed"
 version = "0.1.0"
@@ -12,3 +12,4 @@ serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "^1.36.0", features = ["full"] }
 feed-sync = { path = "feed-sync" }
 ws = "0.9.2"
+naive_classifier = { path = "naive_classifier" }
