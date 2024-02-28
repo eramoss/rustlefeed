@@ -121,25 +121,25 @@ impl NaiveBayesClassifier {
     }
 
     fn probabilities_of_message(&self, message_tokens: HashSet<&str>) -> (f64, f64) {
-        let mut log_prob_if_spam = 0.;
-        let mut log_prob_if_ham = 0.;
+        let mut log_prob_if_dislike = 0.;
+        let mut log_prob_if_like = 0.;
 
         for token in self.tokens.iter() {
-            let (prob_if_spam, prob_if_ham) = self.probabilites_of_token(&token);
+            let (prob_if_spam, prob_if_like) = self.probabilites_of_token(&token);
 
             if message_tokens.contains(token.as_str()) {
-                log_prob_if_spam += prob_if_spam.ln();
-                log_prob_if_ham += prob_if_ham.ln();
+                log_prob_if_dislike += prob_if_spam.ln();
+                log_prob_if_like += prob_if_like.ln();
             } else {
-                log_prob_if_spam += (1. - prob_if_spam).ln();
-                log_prob_if_ham += (1. - prob_if_ham).ln();
+                log_prob_if_dislike += (1. - prob_if_spam).ln();
+                log_prob_if_like += (1. - prob_if_like).ln();
             }
         }
 
-        let prob_if_spam = log_prob_if_spam.exp();
-        let prob_if_ham = log_prob_if_ham.exp();
+        let prob_if_dislike = log_prob_if_dislike.exp();
+        let prob_if_like = log_prob_if_like.exp();
 
-        return (prob_if_spam, prob_if_ham);
+        return (prob_if_dislike, prob_if_like);
     }
 
     fn probabilites_of_token(&self, token: &str) -> (f64, f64) {
