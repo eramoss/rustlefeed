@@ -95,7 +95,7 @@ impl FeedManager {
                 &entry
                     .authors
                     .iter()
-                    .map(|a| a.name.as_str())
+                    .map(|a| a.name.as_str().to_lowercase())
                     .collect::<Vec<_>>(),
             )?;
             let content_json = serde_json::to_string(
@@ -104,25 +104,42 @@ impl FeedManager {
                     .clone()
                     .unwrap_or(Content::default())
                     .body
-                    .unwrap_or_default(),
+                    .unwrap_or_default()
+                    .to_lowercase(),
             )?;
-            let links_json = serde_json::to_string(&entry.links.get(0).unwrap().href)?;
+            let links_json =
+                serde_json::to_string(&entry.links.get(0).unwrap().href.to_lowercase())?;
             let categories_json = serde_json::to_string(
                 &entry
                     .categories
                     .iter()
-                    .map(|c| c.term.as_str())
+                    .map(|c| c.term.as_str().to_lowercase())
                     .collect::<Vec<_>>(),
             )?;
-            let language = entry.language.as_ref().map_or("", String::as_str);
+            let language = entry
+                .language
+                .as_ref()
+                .map_or("", String::as_str)
+                .to_lowercase();
+
+            let title = entry
+                .title
+                .as_ref()
+                .map_or("", |t| t.content.as_str())
+                .to_lowercase();
 
             stmt.execute(params![
-                entry.id,
-                entry.title.as_ref().map_or("", |t| t.content.as_str()),
+                entry.id.to_lowercase(),
+                title,
                 authors_json,
                 content_json,
                 links_json,
-                entry.summary.clone().unwrap_or_default().content,
+                entry
+                    .summary
+                    .clone()
+                    .unwrap_or_default()
+                    .content
+                    .to_lowercase(),
                 categories_json,
                 language,
                 if *is_liked { 1 } else { 0 }
