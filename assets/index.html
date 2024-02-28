@@ -5,11 +5,30 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="feed-style.css">
+  <link rel="stylesheet" href="style.css">
   <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
   <title>Rustle Feed</title>
 </head>
 
 <body>
+  <header>
+    <div class="logo">
+      <span class="rustle">Rustle</span>
+      <span class="feed">Feed</span>
+    </div>
+    <nav>
+      <ul>
+        <li><a href="https://github.com/eramoss">Github</a></li>
+        <li><a href="https://github.com/eramoss/rustlefeed">Source</a></li>
+        <li><a href="https://github.com/eramoss/rustlefeed/issues">Faq</a></li>
+        <li><a href="#">Docs</a></li>
+      </ul>
+    </nav>
+    <div class="input-container">
+      <input type="text" class="input-field" id="add-feed-input" placeholder="Feed url to add">
+    </div>
+  </header>
+
   <div id="content-container" class="feed-container">
     <div id="feed-item">
       <!-- Dynamic contents will be loaded here  -->
@@ -17,8 +36,8 @@
 
     <button class="button-like" id="like">Like</button>
     <button class="button-like" id="dislike">Dislike</button>
-
   </div>
+
   <script src="index.js"></script>
 </body>
 

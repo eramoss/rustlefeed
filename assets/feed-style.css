@@ -90,3 +90,7 @@
     margin-bottom: 50px;
     border-radius: 5px;
   }
+
+  .button-like:hover {
+    background-color: #45a049;
+  }
