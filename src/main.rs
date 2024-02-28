@@ -64,7 +64,9 @@ async fn rocket() -> _ {
     let manager = Arc::new(Mutex::new(build_manager().await));
     let state = StateAppS {
         manager: Arc::clone(&manager),
-        classifier: Arc::new(Mutex::new(NaiveBayesClassifier::new())),
+        classifier: Arc::new(Mutex::new(
+            NaiveBayesClassifier::new("db/FeedHistory.db").unwrap(),
+        )),
     };
     let closer = Arc::clone(&manager);
 

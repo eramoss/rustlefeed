@@ -1,0 +1,11 @@
+[package]
+name = "naive_classifier"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+feed-rs = {git = "https://github.com/eramoss/feed-rs.git" ,branch = "default_text"}
+regex = "^1.5.4"
+rusqlite = "0.31.0"
