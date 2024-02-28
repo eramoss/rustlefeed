@@ -56,12 +56,9 @@ impl FeedManager {
     pub fn get_feed(&self, url: &str) -> Option<&Feed> {
         self.feeds.iter().find(|(_, u)| u == url).map(|(f, _)| f)
     }
-
     pub fn save_already_seen(&self, db_path: &str) -> Result<(), Box<dyn std::error::Error>> {
-        // Establish connection to the SQLite database
         let conn = Connection::open(db_path)?;
 
-        // Create the necessary table if it doesn't exist
         conn.execute(
             "CREATE TABLE IF NOT EXISTS already_seen (
                 id TEXT PRIMARY KEY,
@@ -77,49 +74,60 @@ impl FeedManager {
             [],
         )?;
 
-        // Iterate over each already_seen entry and insert into the database
-        for (entry, is_liked) in &self.already_seen {
-            conn.execute(
-                "INSERT OR REPLACE INTO already_seen (
-                    id, title, authors, content, links, summary,
-                    categories, language, is_liked
-                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
-                params![
-                    entry.id,
-                    entry.title.as_ref().map_or("", |t| t.content.as_str()),
-                    serde_json::to_string(
-                        &entry
-                            .authors
-                            .iter()
-                            .map(|a| a.name.as_str())
-                            .collect::<String>()
-                    )
-                    .unwrap(),
-                    serde_json::to_string(
-                        &entry
-                            .content
-                            .clone()
-                            .unwrap_or(Content::default())
-                            .body
-                            .unwrap_or_default()
-                    )
-                    .unwrap(),
-                    serde_json::to_string(&entry.links.get(0).unwrap().href).unwrap(),
-                    entry.summary.clone().unwrap_or_default().content,
-                    serde_json::to_string(
-                        &entry
-                            .categories
-                            .iter()
-                            .map(|c| c.term.as_str())
-                            .collect::<String>()
-                    )
-                    .unwrap(),
-                    entry.language.as_ref().unwrap_or(&"".to_string()),
-                    if *is_liked { 1 } else { 0 }
-                ],
-            )?;
-        }
+        let mut stmt = conn.prepare(
+            "
+            INSERT OR REPLACE INTO already_seen (
+                id, title, authors, content, links, summary,
+                categories, language, is_liked
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+        ",
+        )?;
 
+        Self::execute_each_entry_in_already_seen(self, &mut stmt)
+    }
+
+    fn execute_each_entry_in_already_seen(
+        &self,
+        stmt: &mut rusqlite::Statement,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        for (entry, is_liked) in &self.already_seen {
+            let authors_json = serde_json::to_string(
+                &entry
+                    .authors
+                    .iter()
+                    .map(|a| a.name.as_str())
+                    .collect::<Vec<_>>(),
+            )?;
+            let content_json = serde_json::to_string(
+                &entry
+                    .content
+                    .clone()
+                    .unwrap_or(Content::default())
+                    .body
+                    .unwrap_or_default(),
+            )?;
+            let links_json = serde_json::to_string(&entry.links.get(0).unwrap().href)?;
+            let categories_json = serde_json::to_string(
+                &entry
+                    .categories
+                    .iter()
+                    .map(|c| c.term.as_str())
+                    .collect::<Vec<_>>(),
+            )?;
+            let language = entry.language.as_ref().map_or("", String::as_str);
+
+            stmt.execute(params![
+                entry.id,
+                entry.title.as_ref().map_or("", |t| t.content.as_str()),
+                authors_json,
+                content_json,
+                links_json,
+                entry.summary.clone().unwrap_or_default().content,
+                categories_json,
+                language,
+                if *is_liked { 1 } else { 0 }
+            ])?;
+        }
         Ok(())
     }
 }
