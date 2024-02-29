@@ -86,7 +86,9 @@ struct FeedJson {
 #[post("/delete-feed", data = "<feed_url>")]
 async fn delete_feed(state: &StateApp, feed_url: Json<AddFeedReq>) -> Custom<Json<String>> {
     let mut manager = state.manager.lock().unwrap().clone();
-    manager.remove_feed_by_url(&feed_url.url);
+    manager
+        .purge_feed("db/FeedHistory.db", &feed_url.url)
+        .unwrap();
     manager.sync().await;
     *state.manager.lock().unwrap() = manager.clone();
     assert!(state.manager.lock().unwrap().feeds.len() == manager.feeds.len());
