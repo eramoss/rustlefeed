@@ -27,10 +27,9 @@ impl FeedManager {
     }
 
     pub async fn new_feed(&mut self, url: &str) -> Result<Feed, Box<dyn std::error::Error>> {
-        let xml = get(url).await?.text().await?;
-        let feed = feed_rs::parser::parse(xml.as_bytes())?;
-        self.add_feed(feed.clone(), url.to_string());
+        self.add_feed(default_feed(), url.to_string());
         self.sync().await;
+        let feed = self.get_feed(url).unwrap().clone();
         Ok(feed)
     }
 
