@@ -70,6 +70,8 @@ function createFeedItem(feed) {
 }
 
 function addNewFeed(url) {
+  const addNewInput = document.getElementById('new-feed-input');
+
   fetch('/add-feed', {
     method: 'POST',
     headers: {
@@ -82,15 +84,19 @@ function addNewFeed(url) {
         window.location.reload();
         return response.json();
       } else {
-        throw new Error('Failed to add feed:', response.statusText);
+        addNewInput.insertAdjacentHTML('afterend', `<div class="error-message">Unknown Feed</div>`);
+        setTimeout(() => {
+          document.querySelector('.error-message').remove();
+        }, 700);
       }
     })
     .then((_) => {
       listFeeds();
     })
-    .catch((error) => console.error(error));
+    .catch((error) => {
+      console.error(error);
+    });
 }
-
 function listFeeds() {
   fetch('/feeds')
     .then((response) => {
