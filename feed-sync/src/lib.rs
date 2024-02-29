@@ -35,6 +35,7 @@ impl FeedManager {
 
     pub async fn sync(&mut self) {
         let mut new_feeds = HashSet::new();
+        self.to_see.clear();
         for (_, url) in self.feeds.iter() {
             let xml = get(url).await.unwrap().text().await.unwrap();
             let new_feed = feed_rs::parser::parse(xml.as_bytes()).unwrap();
