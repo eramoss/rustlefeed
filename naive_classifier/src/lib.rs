@@ -15,6 +15,7 @@ pub struct NaiveBayesClassifier {
 
 type PossiblyLiked = bool;
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct EntryContent {
     all_content: String,
     liked: PossiblyLiked,
@@ -74,7 +75,7 @@ impl NaiveBayesClassifier {
         Ok(classifier)
     }
 
-    fn new_classifier(alpha: f64) -> NaiveBayesClassifier {
+    pub(crate) fn new_classifier(alpha: f64) -> NaiveBayesClassifier {
         NaiveBayesClassifier {
             alpha,
             tokens: HashSet::new(),
@@ -96,9 +97,9 @@ impl NaiveBayesClassifier {
         }
     }
 
-    pub fn classify(&self, entry: Entry) -> PossiblyLiked {
+    pub fn classify(&self, entry: Entry) -> f64 {
         if !self.is_prepared {
-            return true;
+            return 1.;
         }
         let link = match entry.links.get(0) {
             Some(link) => link.href.to_lowercase(),
@@ -126,7 +127,7 @@ impl NaiveBayesClassifier {
         let lower_case_text = text.to_lowercase();
         let message_tokens = Self::tokenize(&lower_case_text);
         let (prob_if_dislike, prob_if_liked) = self.probabilities_of_message(message_tokens);
-        prob_if_liked >= prob_if_dislike
+        return prob_if_liked / (prob_if_liked + prob_if_dislike);
     }
     fn probabilities_of_message(&self, message_tokens: HashSet<&str>) -> (f64, f64) {
         let mut log_prob_if_dislike = 0.;
@@ -196,11 +197,105 @@ impl NaiveBayesClassifier {
         *self.token_liked_counts.get_mut(token).unwrap() += 1;
     }
 
-    fn tokenize(lower_case_text: &str) -> HashSet<&str> {
+    pub(crate) fn tokenize(lower_case_text: &str) -> HashSet<&str> {
         Regex::new(r"[a-z0-9']+")
             .unwrap()
             .find_iter(lower_case_text)
             .map(|mat| mat.as_str())
             .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use feed_rs::model::Content;
+
+    use super::*;
+
+    #[test]
+    fn naive_bayes() {
+        let train_messages = [
+            EntryContent {
+                all_content: "Free Bitcoin viagra XXX christmas deals 😻😻😻".to_string(),
+                liked: true,
+            },
+            EntryContent {
+                all_content: "My dear Granddaughter, please explain Bitcoin over Christmas dinner"
+                    .to_string(),
+                liked: false,
+            },
+            EntryContent {
+                all_content: "Here in my garage...".to_string(),
+                liked: true,
+            },
+        ];
+
+        let alpha = 1.;
+        let num_spam_messages = 2.;
+        let num_ham_messages = 1.;
+
+        let mut model = NaiveBayesClassifier::new_classifier(alpha);
+        model.train(train_messages.to_vec());
+
+        let mut expected_tokens: HashSet<String> = HashSet::new();
+        for message in train_messages.iter() {
+            for token in NaiveBayesClassifier::tokenize(&message.all_content.to_lowercase()) {
+                expected_tokens.insert(token.to_string());
+            }
+        }
+
+        let input_text = "Bitcoin crypto academy Christmas deals";
+
+        let probs_if_spam = [
+            1. - (1. + alpha) / (num_spam_messages + 2. * alpha), // "Free"  (not present)
+            (1. + alpha) / (num_spam_messages + 2. * alpha),      // "Bitcoin"  (present)
+            1. - (1. + alpha) / (num_spam_messages + 2. * alpha), // "viagra"  (not present)
+            1. - (1. + alpha) / (num_spam_messages + 2. * alpha), // "XXX"  (not present)
+            (1. + alpha) / (num_spam_messages + 2. * alpha),      // "christmas"  (present)
+            (1. + alpha) / (num_spam_messages + 2. * alpha),      // "deals"  (present)
+            1. - (1. + alpha) / (num_spam_messages + 2. * alpha), // "my"  (not present)
+            1. - (0. + alpha) / (num_spam_messages + 2. * alpha), // "dear"  (not present)
+            1. - (0. + alpha) / (num_spam_messages + 2. * alpha), // "granddaughter"  (not present)
+            1. - (0. + alpha) / (num_spam_messages + 2. * alpha), // "please"  (not present)
+            1. - (0. + alpha) / (num_spam_messages + 2. * alpha), // "explain"  (not present)
+            1. - (0. + alpha) / (num_spam_messages + 2. * alpha), // "over"  (not present)
+            1. - (0. + alpha) / (num_spam_messages + 2. * alpha), // "dinner"  (not present)
+            1. - (1. + alpha) / (num_spam_messages + 2. * alpha), // "here"  (not present)
+            1. - (1. + alpha) / (num_spam_messages + 2. * alpha), // "in"  (not present)
+            1. - (1. + alpha) / (num_spam_messages + 2. * alpha), // "garage"  (not present)
+        ];
+
+        let probs_if_ham = [
+            1. - (0. + alpha) / (num_ham_messages + 2. * alpha), // "Free"  (not present)
+            (1. + alpha) / (num_ham_messages + 2. * alpha),      // "Bitcoin"  (present)
+            1. - (0. + alpha) / (num_ham_messages + 2. * alpha), // "viagra"  (not present)
+            1. - (0. + alpha) / (num_ham_messages + 2. * alpha), // "XXX"  (not present)
+            (1. + alpha) / (num_ham_messages + 2. * alpha),      // "christmas"  (present)
+            (0. + alpha) / (num_ham_messages + 2. * alpha),      // "deals"  (present)
+            1. - (1. + alpha) / (num_ham_messages + 2. * alpha), // "my"  (not present)
+            1. - (1. + alpha) / (num_ham_messages + 2. * alpha), // "dear"  (not present)
+            1. - (1. + alpha) / (num_ham_messages + 2. * alpha), // "granddaughter"  (not present)
+            1. - (1. + alpha) / (num_ham_messages + 2. * alpha), // "please"  (not present)
+            1. - (1. + alpha) / (num_ham_messages + 2. * alpha), // "explain"  (not present)
+            1. - (1. + alpha) / (num_ham_messages + 2. * alpha), // "over"  (not present)
+            1. - (1. + alpha) / (num_ham_messages + 2. * alpha), // "dinner"  (not present)
+            1. - (0. + alpha) / (num_ham_messages + 2. * alpha), // "here"  (not present)
+            1. - (0. + alpha) / (num_ham_messages + 2. * alpha), // "in"  (not present)
+            1. - (0. + alpha) / (num_ham_messages + 2. * alpha), // "garage"  (not present)
+        ];
+
+        let p_if_spam_log: f64 = probs_if_spam.iter().map(|p| p.ln()).sum();
+        let p_if_spam = p_if_spam_log.exp();
+
+        let p_if_ham_log: f64 = probs_if_ham.iter().map(|p| p.ln()).sum();
+        let p_if_ham = p_if_ham_log.exp();
+        let mut entry = Entry::default();
+        entry.content = Some(Content {
+            body: Some(input_text.to_string()),
+            ..Default::default()
+        });
+        // P(message | spam) / (P(messge | spam) + P(message | ham)) rounds to 0.97
+
+        assert!((model.classify(entry) - p_if_spam / (p_if_spam + p_if_ham)).abs() < 0.034);
     }
 }
