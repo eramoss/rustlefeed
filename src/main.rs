@@ -68,6 +68,40 @@ async fn add_feed(state: &StateApp, feed_url: Json<AddFeedReq>) -> Custom<Json<S
     )
 }
 
+#[derive(Serialize, Deserialize)]
+struct FeedJson {
+    title: String,
+    url: String,
+}
+
+#[post("/delete-feed", data = "<feed_url>")]
+async fn delete_feed(state: &StateApp, feed_url: Json<AddFeedReq>) -> Custom<Json<String>> {
+    let mut manager = state.manager.lock().unwrap().clone();
+    manager.remove_feed_by_url(&feed_url.url);
+    *state.manager.lock().unwrap() = manager.clone();
+    assert!(state.manager.lock().unwrap().feeds.len() == manager.feeds.len());
+    Custom(
+        Status::Accepted,
+        Json("Feed deletion task started".to_string()),
+    )
+}
+
+#[get("/feeds")]
+async fn list_feeds(state: &StateApp) -> Json<Vec<FeedJson>> {
+    let mut feeds = vec![];
+    for (feed, url) in state.manager.lock().unwrap().feeds.iter() {
+        let f = FeedJson {
+            title: <std::option::Option<feed_rs::model::Text> as Clone>::clone(&feed.title)
+                .unwrap_or_default()
+                .content
+                .clone(),
+            url: url.clone(),
+        };
+        feeds.push(f);
+    }
+    Json(feeds)
+}
+
 #[get("/<file..>")]
 async fn files(file: PathBuf) -> Option<NamedFile> {
     NamedFile::open(Path::new("assets").join(file)).await.ok()
@@ -97,7 +131,10 @@ async fn rocket() -> _ {
 
     rocket::build()
         .manage(state)
-        .mount("/", routes![index, next, files, add_feed])
+        .mount(
+            "/",
+            routes![index, next, add_feed, files, list_feeds, delete_feed],
+        )
         .attach(fairing::AdHoc::on_shutdown(
             "saving already seen on db",
             |_rocket| {
