@@ -40,6 +40,12 @@ fn next(state: &StateApp, msg: Json<IsLiked>) -> RawHtml<String> {
         let current = current.unwrap();
         let possibility_of_like = state.classifier.lock().unwrap().classify(current.clone());
         if possibility_of_like >= 0.5 {
+            if manager.already_seen.contains(&(current.clone(), true))
+                || manager.already_seen.contains(&(current.clone(), false))
+            {
+                manager.to_see.pop();
+                continue;
+            }
             return RawHtml(current.into_html());
         } else {
             manager.to_see.pop();
