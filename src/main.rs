@@ -38,8 +38,8 @@ fn next(state: &StateApp, msg: Json<IsLiked>) -> RawHtml<String> {
             return RawHtml("No more entries".to_string());
         }
         let current = current.unwrap();
-        let possible_likes = state.classifier.lock().unwrap().classify(current.clone());
-        if possible_likes {
+        let possibility_of_like = state.classifier.lock().unwrap().classify(current.clone());
+        if possibility_of_like >= 0.5 {
             return RawHtml(current.into_html());
         } else {
             manager.to_see.pop();
