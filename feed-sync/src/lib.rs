@@ -3,6 +3,7 @@ pub mod persistence;
 
 use feed_rs::model::{Entry, Feed};
 use reqwest::get;
+use tokio::task;
 
 use std::collections::HashSet;
 
@@ -36,16 +37,31 @@ impl FeedManager {
     pub async fn sync(&mut self) {
         let mut new_feeds = HashSet::new();
         self.to_see.clear();
+
+        let mut tasks = Vec::new();
+
         for (_, url) in self.feeds.iter() {
-            let xml = get(url).await.unwrap().text().await.unwrap();
-            let new_feed = feed_rs::parser::parse(xml.as_bytes()).unwrap();
+            let url = url.clone();
+
+            let task = task::spawn(async move {
+                let xml = get(&url).await.unwrap().text().await.unwrap();
+                let new_feed = feed_rs::parser::parse(xml.as_bytes()).unwrap();
+                (new_feed, url)
+            });
+
+            tasks.push(task);
+        }
+
+        for task in tasks {
+            let (new_feed, url) = task.await.unwrap();
             for entry in &new_feed.entries {
                 if !self.to_see.contains(&entry) {
                     self.to_see.push(entry.clone());
                 }
             }
-            new_feeds.insert((new_feed, url.clone()));
+            new_feeds.insert((new_feed, url));
         }
+
         self.feeds = new_feeds;
     }
 
