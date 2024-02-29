@@ -57,6 +57,7 @@ function createFeedItem(feed) {
       .then((response) => {
         if (response.ok) {
           feedList.removeChild(li);
+          window.location.reload();
         } else {
           console.error('Failed to delete feed:', response.statusText);
         }
@@ -78,6 +79,7 @@ function addNewFeed(url) {
   })
     .then((response) => {
       if (response.ok) {
+        window.location.reload();
         return response.json();
       } else {
         throw new Error('Failed to add feed:', response.statusText);
