@@ -7,9 +7,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const response = await fetch('/next', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ liked: is_liked })
+      body: JSON.stringify({ liked: is_liked }),
     });
     if (response.ok) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -30,57 +30,93 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   fetchNextContent(null);
 });
-function sendFeed(url) {
+
+const feedList = document.getElementById('feed-list');
+const newFeedInput = document.getElementById('new-feed-input');
+const addFeedButton = document.getElementById('add-feed-button');
+
+function createFeedItem(feed) {
+  const li = document.createElement('li');
+  li.textContent = feed.title;
+
+  const removeButton = document.createElement('button');
+  removeButton.className = 'remove-button';
+  const iconSpan = document.createElement('span');
+  iconSpan.className = 'icon';
+  iconSpan.innerText = '×';
+  removeButton.appendChild(iconSpan);
+
+  removeButton.addEventListener('click', function () {
+    fetch('/delete-feed', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ url: feed.url }),
+    })
+      .then((response) => {
+        if (response.ok) {
+          feedList.removeChild(li);
+        } else {
+          console.error('Failed to delete feed:', response.statusText);
+        }
+      })
+      .catch((error) => console.error('Error deleting feed:', error));
+  });
+
+  li.appendChild(removeButton);
+  return li;
+}
+
+function addNewFeed(url) {
   fetch('/add-feed', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ url: url })
+    body: JSON.stringify({ url }),
   })
-  .then(response => {
-    if (response.ok) {
-      return response.json();
-    }
-    displayErrorMessageInsideInput(document.getElementById('add-feed-input'), 'Feed not found');
-  })
-  .catch(error => {
-    // Handle error
-    console.error('Error:', error);
-    displayErrorMessage('There was an error processing your request.');
-  });
-}
-
-function displayErrorMessageInsideInput(input, message) {
-  const errorMessage = input.nextElementSibling;
-  if (errorMessage && errorMessage.classList.contains('error-message')) {
-    errorMessage.textContent = message;
-  } else {
-    const errorDiv = document.createElement('div');
-    errorDiv.classList.add('error-message');
-    errorDiv.textContent = message;
-    input.parentNode.insertBefore(errorDiv, input.nextSibling);
-    setTimeout(() => {
-      errorDiv.remove();
-    }, 2000); // Remove error message after 2 seconds
-  }
-}
-
-// Event listener for Enter key press
-document.getElementById('add-feed-input').addEventListener('keypress', function(event) {
-  if (event.key === 'Enter') {
-    const url = event.target.value.trim();
-    const input = event.target;
-    if (url !== '') {
-      sendFeed(url);
-      event.target.value = '';
-      const errorMessage = input.nextElementSibling;
-      if (errorMessage && errorMessage.classList.contains('error-message')) {
-        errorMessage.parentNode.removeChild(errorMessage);
+    .then((response) => {
+      if (response.ok) {
+        return response.json();
+      } else {
+        throw new Error('Failed to add feed:', response.statusText);
       }
-    } else {
-      console.error('URL cannot be empty');
-      displayErrorMessageInsideInput(input, 'URL cannot be empty');
-    }
+    })
+    .then((_) => {
+      listFeeds();
+    })
+    .catch((error) => console.error(error));
+}
+
+function listFeeds() {
+  fetch('/feeds')
+    .then((response) => {
+      if (response.ok) {
+        return response.json();
+      } else {
+        throw new Error('Failed to fetch feeds:', response.statusText);
+      }
+    })
+    .then((feeds) => {
+      while (feedList.firstChild) {
+        feedList.removeChild(feedList.firstChild);
+      }
+      feeds.forEach((feed) => {
+        const feedItem = createFeedItem(feed);
+        feedList.appendChild(feedItem);
+      });
+    })
+    .catch((error) => console.error(error));
+
+}
+
+addFeedButton.addEventListener('click', function () {
+  const url = newFeedInput.value.trim();
+  if (url !== '') {
+    addNewFeed(url);
+    newFeedInput.value = '';
   }
 });
+
+listFeeds();

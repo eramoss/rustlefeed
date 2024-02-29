@@ -11,33 +11,28 @@
 </head>
 
 <body>
-  <header>
-    <div class="logo">
-      <span class="rustle">Rustle</span>
-      <span class="feed">Feed</span>
+  <div class="site-container">
+
+
+    <div id="content-container" class="feed-container">
+      <div id="feed-item">
+        <!-- Dynamic contents will be loaded here  -->
+      </div>
+
+      <button class="button-like" id="like">Like</button>
+      <button class="button-like" id="dislike">Dislike</button>
     </div>
-    <nav>
-      <ul>
-        <li><a href="https://github.com/eramoss">Github</a></li>
-        <li><a href="https://github.com/eramoss/rustlefeed">Source</a></li>
-        <li><a href="https://github.com/eramoss/rustlefeed/issues">Faq</a></li>
-        <li><a href="#">Docs</a></li>
+    <aside class="feed-list">
+      <h2>Feeds</h2>
+      <div>
+        <input type="url" name="new-feed" id="new-feed-input">
+        <button id="add-feed-button">Add</button>
+      </div>
+      <ul id="feed-list">
+        <!-- Dynamic contents will be loaded here  -->
       </ul>
-    </nav>
-    <div class="input-container">
-      <input type="text" class="input-field" id="add-feed-input" placeholder="Feed url to add">
-    </div>
-  </header>
-
-  <div id="content-container" class="feed-container">
-    <div id="feed-item">
-      <!-- Dynamic contents will be loaded here  -->
-    </div>
-
-    <button class="button-like" id="like">Like</button>
-    <button class="button-like" id="dislike">Dislike</button>
+    </aside>
   </div>
-
   <script src="index.js"></script>
 </body>
 

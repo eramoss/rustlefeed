@@ -1,106 +1,70 @@
-header {
-  background-color: #333;
-  color: #fff;
-  padding: 5px 10px;
-  width: 100%;
+.site-container {
   display: flex;
+  justify-content: center;
   flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
 }
 
-nav ul {
-  list-style-type: none;
-  display: flex;
-}
-
-nav ul li {
-  margin-right: 20px;
-}
-
-nav ul li a {
-  color: #fff;
-  text-decoration: none;
-}
-
-.input-container {
-  position: relative;
-}
-
-.input-field {
-  width: 100%;
-  padding: 5px;
-  border: 1px solid #ccc;
+.feed-list {
+  padding: 1%;
   border-radius: 5px;
-  font-size: 12px;
-  transition: border-color 0.3s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-.input-field:focus {
-  border-color: #4CAF50;
+.feed-list h2 {
+  margin-top: 0;
+  font-size: 18px;
+}
+
+#new-feed-input {
+  width: calc(100% - 80px);
+  margin-right: 5px;
+  padding: 3px;
+  background: none;
+}
+
+input {
+  border: none;
+  border-bottom: 1px solid #000;
   outline: none;
 }
 
-
-
-.input-field:focus .input-field:valid {
-  top: 0;
-  font-size: 12px;
-  color: #4CAF50;
+input:focus {
+  border-bottom: 1px solid #4CAF50;
 }
 
-.input-field:valid {
-  border-color: #4CAF50;
+#add-feed-button {
+  padding: 5px 10px;
+  background-color: #4CAF50;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
 }
 
-.error-message {
-  position: absolute;
-  color: #dc3545;
-  font-size: 14px;
-
-  animation: shake 0.3s ease-in-out;
+#feed-list {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0 0;
 }
 
-
-.logo {
-  position: relative;
-  font-size: 28px;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
+#feed-list li {
+  margin-bottom: 5px;
 }
 
-.rustle {
-  padding-bottom: 10%;
-  color: #ffffff;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+#feed-list li:last-child {
+  margin-bottom: 0;
 }
 
-.feed {
-  color: #ffffff;
-  opacity: 0.5;
-  /* Adjust the opacity as needed */
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+.remove-button {
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  padding-left: 5%;
+  margin-top: 5px;
 }
 
-@keyframes shake {
-  0% {
-    transform: translateX(0);
-  }
-
-  25% {
-    transform: translateX(-3px);
-  }
-
-  50% {
-    transform: translateX(3px);
-  }
-
-  75% {
-    transform: translateX(-3px);
-  }
-
-  100% {
-    transform: translateX(0);
-  }
+.remove-button .icon {
+  color: red;
+  font-size: 20px;
+  line-height: 1;
 }

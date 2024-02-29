@@ -55,10 +55,13 @@ struct AddFeedReq {
 #[post("/add-feed", data = "<feed_url>")]
 async fn add_feed(state: &StateApp, feed_url: Json<AddFeedReq>) -> Custom<Json<String>> {
     let mut manager = state.manager.lock().unwrap().clone();
+    if manager.get_feed(&feed_url.url).is_some() {
+        return Custom(Status::BadRequest, Json("Feed already added".to_string()));
+    }
     let result = manager.new_feed(&feed_url.url).await;
 
     *state.manager.lock().unwrap() = manager.clone();
-    assert!(state.manager.lock().unwrap().feeds.len() == manager.feeds.len());
+
     if result.is_err() {
         return Custom(Status::BadRequest, Json("Error adding feed".to_string()));
     }

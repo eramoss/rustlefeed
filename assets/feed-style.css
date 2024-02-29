@@ -7,14 +7,14 @@
 
   /* Body styles */
   body {
-    font: 80% Verdana, sans-serif;
+    font: 100% Verdana, sans-serif;
     background-color: #f8f8f8;
     color: #333;
   }
 
   /* Container for the entire feed */
   .feed-container {
-    max-width: 800px;
+    max-width: 1000px;
     min-height: 100vh;
     height: 100%;
     margin: 0 auto;
