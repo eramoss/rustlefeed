@@ -103,10 +103,7 @@ async fn list_feeds(state: &StateApp) -> Json<Vec<FeedJson>> {
     let mut feeds = vec![];
     for (feed, url) in state.manager.lock().unwrap().feeds.iter() {
         let f = FeedJson {
-            title: <std::option::Option<feed_rs::model::Text> as Clone>::clone(&feed.title)
-                .unwrap_or_default()
-                .content
-                .clone(),
+            title: url.clone(),
             url: url.clone(),
         };
         feeds.push(f);
